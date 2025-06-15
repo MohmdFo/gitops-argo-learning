@@ -1,0 +1,93 @@
+# Simplified Kong Setup for ARM64 - Less dependencies
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: kong
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: ingress-controllers.konghq.com/kong
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-proxy
+  labels:
+    app: kong-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong-proxy
+  template:
+    metadata:
+      labels:
+        app: kong-proxy
+    spec:
+      containers:
+      - name: kong
+        image: kong:3.6-alpine
+        env:
+        - name: KONG_DATABASE
+          value: "off"
+        - name: KONG_PROXY_LISTEN
+          value: "0.0.0.0:8000"
+        - name: KONG_ADMIN_LISTEN
+          value: "0.0.0.0:8001"
+        - name: KONG_PROXY_ACCESS_LOG
+          value: "/dev/stdout"
+        - name: KONG_ADMIN_ACCESS_LOG
+          value: "/dev/stdout"
+        - name: KONG_PROXY_ERROR_LOG
+          value: "/dev/stderr"
+        - name: KONG_ADMIN_ERROR_LOG
+          value: "/dev/stderr"
+        - name: KONG_LOG_LEVEL
+          value: "info"
+        ports:
+        - containerPort: 8000
+          name: proxy
+        - containerPort: 8001
+          name: admin
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  labels:
+    app: kong-proxy
+spec:
+  type: LoadBalancer
+  selector:
+    app: kong-proxy
+  ports:
+  - name: proxy
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: admin
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
