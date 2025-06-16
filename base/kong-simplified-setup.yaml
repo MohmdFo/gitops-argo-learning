@@ -1,4 +1,4 @@
-# Simplified Kong Setup for ARM64 - Less dependencies
+# Simplified image Setup for ARM64 - Less dependencies
 ---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: kong
-        image: kong:3.6-alpine
+        image: kong/kong:3.6.1-alpine
         env:
         - name: KONG_DATABASE
           value: "off"
